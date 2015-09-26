@@ -69,12 +69,24 @@
 
 (defn advance-step []
   (swap! !global (fn [s] (update-in s [:instruments :a :patterns 0 :current-step] #(if (= % 15) 0 (inc %)))))
-      (let [current-step (get-in @!global [:instruments :a :patterns 0 :current-step])]
-           (prn (get-in @!global [:instruments :a :patterns 0 :pattern current-step]))))
+      (let [current-step (get-in @!global [:instruments :a :patterns 0 :current-step])
+            current-val (get-in @!global [:instruments :a :patterns 0 :pattern current-step])]
+
+
+      (if-not (nil? @midi-out) (.forEach @midi-out (fn([out] (.send out #js [146 current-val 127])
+              (.send out #js [146 current-val 0] (+ (js/performance.now) 200)
+      )))))))
 
 
 (defonce bpm (js/setInterval advance-step 500))
 
+(def midi-out (atom nil))
+
 (defn init []
+      (.then (js/navigator.requestMIDIAccess)
+             (fn [midi-access]
+                 (js/console.log midi-access)
+                 (reset! midi-out (.-outputs midi-access))
+                 ))
   (r/render-component [root-component]
                             (.getElementById js/document "container")))
