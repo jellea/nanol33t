@@ -1,0 +1,18 @@
+body {
+  font-family: sans-serif;
+
+}
+
+.pattern-view {
+    width: 400px;
+    border: 1px solid black;
+}
+.pattern-view button {
+    width: 100px;
+    height: 100px;
+    background: #fff;
+}
+
+.pattern-view button.current {
+   background: #ccc;
+}
