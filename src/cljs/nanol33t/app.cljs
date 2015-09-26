@@ -23,11 +23,29 @@
             [:button {:key x} x])])
 
 
+(defn step-mouse-move [current-pos start-pos index]
+  (let [delta (- start-pos current-pos)
+        selected-pattern (get-in @!global [:instruments (:instrument-selected @!global) :selected-pattern])]
+       (prn index)
+    (swap! !global (fn [s] (update-in s [:instruments (:instrument-selected @!global) :patterns selected-pattern :pattern index]
+                                      #(- % delta))))))
+
+
+
+
 (defn step-view [index pattern]
-      (let [step (get-in pattern [:pattern index])
-            !pressed? (r/atom false)]
+      (let [selected-instrument (get-in @!global [:instruments (:instrument-selected @!global)])
+            selected-pattern (:selected-pattern selected-instrument)
+            step (get-in selected-instrument [:patterns selected-pattern :pattern index])
+            !pressed? (r/atom false)
+            !start-pos (r/atom nil)]
            (fn [index pattern]
-               [:button {:class (if (= (:current-step pattern) index) "current")}
+               (prn index)
+               [:button {:class         (if (= (:current-step pattern) index) "current")
+                         :on-mouse-move #(if @!pressed? (step-mouse-move (.-pageY %) @!start-pos index))
+                         :on-mouse-down #(do (reset! !pressed? true)
+                                             (reset! !start-pos (.-pageY %)))
+                         :on-mouse-up   #(reset! !pressed? false)}
                 (if (nil? step) 0 step)])))
 
 
@@ -36,11 +54,12 @@
         selected-pattern    (get-in selected-instrument [:patterns (:selected-pattern selected-instrument)])]
        [:div.pattern-view
         (for [index (range (:pattern-length selected-pattern))]
-             ^{:key index} [step-view index selected-pattern])]))
+             ^{:key index} [step-view index selected-pattern (get-in selected-pattern [:pattern index])])]))
 
 
 (defn instrument-selector [index instrument-name]
   [:button {:key index} (name (key instrument-name))])
+
 
 
 (defn root-component []
