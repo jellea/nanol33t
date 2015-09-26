@@ -26,27 +26,25 @@
 (defn step-mouse-move [current-pos start-pos index]
   (let [delta (- start-pos current-pos)
         selected-pattern (get-in @!global [:instruments (:instrument-selected @!global) :selected-pattern])]
-       (prn index)
     (swap! !global (fn [s] (update-in s [:instruments (:instrument-selected @!global) :patterns selected-pattern :pattern index]
-                                      #(- % delta))))))
-
+                                      #(max (min (- % delta) 127) 0))))))
 
 
 
 (defn step-view [index pattern]
-      (let [selected-instrument (get-in @!global [:instruments (:instrument-selected @!global)])
-            selected-pattern (:selected-pattern selected-instrument)
-            step (get-in selected-instrument [:patterns selected-pattern :pattern index])
+      (let [selected-instrument (:instrument-selected @!global)
+            selected-pattern (get-in @!global [:instruments selected-instrument :selected-pattern])
             !pressed? (r/atom false)
             !start-pos (r/atom nil)]
            (fn [index pattern]
-               (prn index)
-               [:button {:class         (if (= (:current-step pattern) index) "current")
-                         :on-mouse-move #(if @!pressed? (step-mouse-move (.-pageY %) @!start-pos index))
-                         :on-mouse-down #(do (reset! !pressed? true)
-                                             (reset! !start-pos (.-pageY %)))
-                         :on-mouse-up   #(reset! !pressed? false)}
-                (if (nil? step) 0 step)])))
+               (let [step (get-in @!global [:instruments selected-instrument :patterns selected-pattern :pattern index])]
+                    [:button {:class         (if (= (:current-step pattern) index) "current")
+                              :style         {:background (str "linear-gradient(180deg, white, white " (dec step) "%, red " step "%)")}
+                              :on-mouse-move #(if @!pressed? (step-mouse-move (.-pageY %) @!start-pos index))
+                              :on-mouse-down #(do (reset! !pressed? true)
+                                                  (reset! !start-pos (.-pageY %)))
+                              :on-mouse-up   #(reset! !pressed? false)}
+                     (if (nil? step) 0 step)]))))
 
 
 (defn pattern-view []
@@ -54,7 +52,7 @@
         selected-pattern    (get-in selected-instrument [:patterns (:selected-pattern selected-instrument)])]
        [:div.pattern-view
         (for [index (range (:pattern-length selected-pattern))]
-             ^{:key index} [step-view index selected-pattern (get-in selected-pattern [:pattern index])])]))
+             ^{:key index} [step-view index selected-pattern])]))
 
 
 (defn instrument-selector [index instrument-name]
@@ -71,7 +69,8 @@
 
 (defn advance-step []
   (swap! !global (fn [s] (update-in s [:instruments :a :patterns 0 :current-step] #(if (= % 15) 0 (inc %)))))
-  (prn (get-in @!global [:instruments :a :patterns 0 :current-step])))
+      (let [current-step (get-in @!global [:instruments :a :patterns 0 :current-step])]
+           (prn (get-in @!global [:instruments :a :patterns 0 :pattern current-step]))))
 
 
 (defonce bpm (js/setInterval advance-step 500))
