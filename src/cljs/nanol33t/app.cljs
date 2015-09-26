@@ -9,6 +9,10 @@
                                    :c {}
                                    :b {}}}))
 
+(defn note-to-freq [note]
+      (* (js/Math.pow 2 (/ (- note 69) 12) ) 440))
+
+
 (defn step-view []
   [:button "bla"])
 
