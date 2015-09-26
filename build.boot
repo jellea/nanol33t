@@ -5,6 +5,7 @@
                  [adzerk/boot-cljs-repl     "0.1.9"      :scope "test"]
                  [adzerk/boot-reload        "0.3.1"      :scope "test"]
                  [pandeiro/boot-http        "0.6.3"      :scope "test"]
+                 [jeluard/boot-notify "0.2.0" :scope "test"]
                  [org.clojure/clojurescript "1.7.58"]
                  [reagent "0.5.0"]])
 
@@ -12,13 +13,12 @@
  '[adzerk.boot-cljs      :refer [cljs]]
  '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]]
  '[adzerk.boot-reload    :refer [reload]]
+ '[jeluard.boot-notify   :refer [notify]]
  '[pandeiro.boot-http    :refer [serve]])
 
 (deftask build []
-  (comp (speak)
-        
-        (cljs)
-        ))
+  (comp (notify)
+        (cljs)))
 
 (deftask run []
   (comp (serve)
