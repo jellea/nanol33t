@@ -1,0 +1,2 @@
+{:require  [nanol33t.app]
+ :init-fns [nanol33t.app/init]}
