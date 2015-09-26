@@ -19,14 +19,16 @@
 
 (defn pattern-selector []
       [:div
-       (map #([:button {:key %} %] (range 10)))])
+       (for [x (range 10)]
+            [:button {:key x} x])])
 
 
 (defn step-view [index pattern]
       (let [step (get-in pattern [:pattern index])
             !pressed? (r/atom false)]
            (fn [index pattern]
-               [:button {:key index} (if (nil? step) 0 step)])))
+               [:button {:class (if (= (:current-step pattern) index) "current")}
+                (if (nil? step) 0 step)])))
 
 
 (defn pattern-view []
@@ -34,12 +36,11 @@
         selected-pattern    (get-in selected-instrument [:patterns (:selected-pattern selected-instrument)])]
        [:div.pattern-view
         (for [index (range (:pattern-length selected-pattern))]
-             [step-view index selected-pattern])]))
+             ^{:key index} [step-view index selected-pattern])]))
 
 
 (defn instrument-selector [index instrument-name]
   [:button {:key index} (name (key instrument-name))])
-
 
 
 (defn root-component []
@@ -50,11 +51,11 @@
 
 
 (defn advance-step []
-  (swap! !global #(update-in % [:instruments :a :patterns 0 :current-step] inc))
+  (swap! !global (fn [s] (update-in s [:instruments :a :patterns 0 :current-step] #(if (= % 15) 0 (inc %)))))
   (prn (get-in @!global [:instruments :a :patterns 0 :current-step])))
 
 
-(js/setInterval advance-step 500)
+(defonce bpm (js/setInterval advance-step 500))
 
 (defn init []
   (r/render-component [root-component]
