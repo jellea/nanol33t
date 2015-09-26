@@ -10,7 +10,11 @@
                                             :patterns         [{:pattern-length 16
                                                                 :current-step   0
                                                                 :pattern        [64 nil nil 64 64 nil nil 64 64 nil nil 64 64 nil nil 64]}]}
-                                        :b {} :c {} :d {} :f {} :g {} :h {}
+                                        :b {:selected-pattern 0
+                                             :patterns         [{:pattern-length 16
+                                                                 :current-step   0
+                                                                 :pattern        [64 nil nil 64 64 nil nil 64 64 nil nil 64 64 nil nil 64]}]}
+                                        :c {} :d {} :f {} :g {} :h {}
                                         }}))
 
 (defn note-to-freq [note]
@@ -32,14 +36,15 @@
 
 
 (defn step-view [index pattern]
-      (let [selected-instrument (:instrument-selected @!global)
-            selected-pattern (get-in @!global [:instruments selected-instrument :selected-pattern])
-            !pressed? (r/atom false)
+      (let [!pressed? (r/atom false)
             !start-pos (r/atom nil)]
            (fn [index pattern]
-               (let [step (get-in @!global [:instruments selected-instrument :patterns selected-pattern :pattern index])]
+               (let [selected-instrument (:instrument-selected @!global)
+                     selected-pattern (get-in @!global [:instruments selected-instrument :selected-pattern])
+                     step (get-in @!global [:instruments selected-instrument :patterns selected-pattern :pattern index])
+                     step-colour (if (= (:current-step pattern) index) "grey" "red")]
                     [:button {:class         (if (= (:current-step pattern) index) "current")
-                              :style         {:background (str "linear-gradient(180deg, white, white " (dec step) "%, red " step "%)")}
+                              :style         {:background (str "linear-gradient(180deg, white, white " (dec step) "%, " step-colour " " step "%)")}
                               :on-mouse-move #(if @!pressed? (step-mouse-move (.-pageY %) @!start-pos index))
                               :on-mouse-down #(do (reset! !pressed? true)
                                                   (reset! !start-pos (.-pageY %)))
@@ -56,9 +61,9 @@
 
 
 (defn instrument-selector [index instrument-name]
-  [:button {:key index} (name (key instrument-name))])
-
-
+  [:button {:key      index
+            :on-click (fn [] (swap! !global #(assoc % :instrument-selected (key instrument-name))))}
+   (name (key instrument-name))])
 
 (defn root-component []
   [:div
@@ -68,17 +73,22 @@
 
 
 (defn advance-step []
-  (swap! !global (fn [s] (update-in s [:instruments :a :patterns 0 :current-step] #(if (= % 15) 0 (inc %)))))
-      (let [current-step (get-in @!global [:instruments :a :patterns 0 :current-step])
-            current-val (get-in @!global [:instruments :a :patterns 0 :pattern current-step])]
+  (swap! !global (fn [s] (-> (update-in s [:instruments :a :patterns 0 :current-step] #(if (= % 15) 0 (inc %)))
+                             (update-in [:instruments :b :patterns 0 :current-step] #(if (= % 15) 0 (inc %))))))
+      (let [a-current-step (get-in @!global [:instruments :a :patterns 0 :current-step])
+            a-current-val (get-in @!global [:instruments :a :patterns 0 :pattern a-current-step])
+            b-current-step (get-in @!global [:instruments :b :patterns 0 :current-step])
+            b-current-val (get-in @!global [:instruments :b :patterns 0 :pattern b-current-step])]
+
+        (if-not (nil? @midi-out) (.forEach @midi-out
+                                           (fn([out]
+                                                (.send out #js [146 a-current-val 127])
+                                                (.send out #js [147 b-current-val 0] (+ (js/performance.now) 100))
+                                                (.send out #js [147 b-current-val 127])
+                                                (.send out #js [146 a-current-val 0] (+ (js/performance.now) 100))))))))
 
 
-      (if-not (nil? @midi-out) (.forEach @midi-out (fn([out] (.send out #js [146 current-val 127])
-              (.send out #js [146 current-val 0] (+ (js/performance.now) 200)
-      )))))))
-
-
-(defonce bpm (js/setInterval advance-step 500))
+(defonce bpm (js/setInterval advance-step 400))
 
 (def midi-out (atom nil))
 
